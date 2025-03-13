@@ -1,19 +1,20 @@
-import React, {useEffect, useState} from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Login from './pages/Login';
+import Home from './pages/Home';
 
 function App() {
+  const handleLogin = () => {
+    console.log('User logged in');
+  };
 
-  const [backendData, setBackendData] = useState([{}]);
-
-
-  useEffect(() => {
-    fetch('/api').then(response => response.json()).then(data => setBackendData(data));
-  }, []);
-      
-  
   return (
-    <div>
-      <h1>Hello, World!</h1>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login onLogin={handleLogin} />} />
+        <Route path="/home" element={<Home />} />
+      </Routes>
+    </Router>
   );
 }
 
