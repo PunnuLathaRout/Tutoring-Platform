@@ -1,36 +1,12 @@
 import React from 'react';
+import Header from '../pages/Header'; // Import Header component
+import Footer from '../pages/Footer'; // Import Footer component
 import './Home.css'; // Ensure you have a CSS file for styling
 
 function Home() {
   return (
     <div className="home-container">
-      <header className="home-header">
-        <div className="logo" onClick={() => window.location.href = '/home'}>Learning Bridge</div>
-        <div className="search-bar">
-          <input type="text" placeholder="Search tutors..." />
-        </div>
-        <div className="skills-dropdown">
-          <select>
-            <option value="">Select Skill</option>
-            <option value="math">Math</option>
-            <option value="science">Science</option>
-            <option value="english">English</option>
-            {/* Add more options as needed */}
-          </select>
-        </div>
-        <div className="icons">
-          <button className="filter-icon">Filter</button>
-          <button className="notifications-icon">Notifications</button>
-          <div className="profile-icon">
-            <button>Profile</button>
-            <div className="dropdown-content">
-              <button onClick={() => window.location.href = '#'}>Profile Settings</button>
-              <button onClick={() => window.location.href = '#'}>Account Details</button>
-              <button onClick={() => window.location.href = '/'}>Logout</button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header /> {/* Use Header component */}
       <div className="home-content">
         <div className="section">
           <div className="text-content">
@@ -85,35 +61,7 @@ function Home() {
           </div>
         </div>
       </div>
-      <footer className="home-footer">
-        <div className="footer-sections">
-          <div className="footer-section">
-            <h3>Contact & Support</h3>
-            <p>Email: <a href="mailto:support@tutorfinder.com">support@LearningBridge.com</a></p>
-            <p>Phone: <a href="tel:+1800">+1-800-TUTOR-HELP</a></p>
-           
-          </div>
-          <div className="footer-section">
-            <h3>Legal & Policies</h3>
-            <p><a href="/">Terms of Service</a></p>
-            <p><a href="/">Privacy Policy</a></p>
-            <p><a href="/">Refund & Cancellation Policy</a></p>
-            <p><a href="/">Community Guidelines</a></p>
-          </div>
-          <div className="footer-section">
-            <h3>Social Media Links</h3>
-            <p>
-              <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer">Facebook</a> | 
-              <a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a> | 
-              <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a> | 
-              <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">Instagram</a>
-            </p>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2025 LearningBridge. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer /> {/* Use Footer component */}
     </div>
   );
 }
