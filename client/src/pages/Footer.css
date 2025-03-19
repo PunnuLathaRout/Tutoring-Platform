@@ -1,0 +1,31 @@
+.home-footer {
+    background-color: #fff;
+    padding: 20px 0; /* Adjust padding to remove extra space */
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0; /* Remove any margin */
+    width: 100%; /* Ensure it spans the full width */
+}
+
+.footer-sections {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    margin-bottom: 20px;
+}
+
+.footer-section {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.footer-section h3 {
+    margin-bottom: 10px;
+}
+
+.footer-bottom {
+    margin-top: 20px;
+}
