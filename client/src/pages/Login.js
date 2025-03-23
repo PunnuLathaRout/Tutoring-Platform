@@ -7,8 +7,6 @@ function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [userType, setUserType] = useState('student');
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -19,8 +17,8 @@ function Login({ onLogin }) {
       return;
     }
 
-    const url = isLogin ? '/api/login' : userType === 'student' ? '/api/register' : '/api/register-tutor';
-    const data = isLogin ? { email, password } : { fullName, email, password };
+    const url = isLogin ? '/api/login' : '/api/register';
+    const data = { email, password };
 
     fetch(url, {
       method: 'POST',
@@ -47,9 +45,6 @@ function Login({ onLogin }) {
           } else if (!isLogin && data.message === 'User signed up successfully') {
             setMessage('Registration successful. Please sign in.');
             setIsLogin(true);
-          } else if (!isLogin && data.message === 'Tutor signed up successfully') {
-            setMessage('Registration successful. Please sign in.');
-            setIsLogin(true);
           }
         }
       })
@@ -65,41 +60,6 @@ function Login({ onLogin }) {
         <h1>Learning Bridge</h1>
         {message && <p className="message">{message}</p>}
         <form onSubmit={handleSubmit}>
-          {!isLogin && (
-            <>
-              <div className="form-group">
-                <label>
-                  <input
-                    type="radio"
-                    name="userType"
-                    value="student"
-                    checked={userType === 'student'}
-                    onChange={() => setUserType('student')}
-                  />
-                  Student
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="userType"
-                    value="tutor"
-                    checked={userType === 'tutor'}
-                    onChange={() => setUserType('tutor')}
-                  />
-                  Tutor
-                </label>
-              </div>
-              <div className="form-group">
-                <label>Full Name</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </div>
-            </>
-          )}
           <div className="form-group">
             <label>Email</label>
             <input
