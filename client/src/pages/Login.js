@@ -7,19 +7,36 @@ function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [userType, setUserType] = useState('student'); // Default to 'student'
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Check for password mismatch during signup
     if (!isLogin && password !== confirmPassword) {
       setMessage('Passwords do not match');
       return;
     }
 
-    const url = isLogin ? '/api/login' : '/api/register';
-    const data = { email, password };
+    // Determine the API endpoint
+    const url = isLogin
+      ? '/api/login'
+      : userType === 'student'
+      ? '/api/register'
+      : '/api/register-tutor';
 
+    // Prepare the request payload
+    const data = isLogin
+      ? { email, password, userType }
+      : { fullName, email, password };
+
+    console.log('Submitting request to:', url);
+    console.log('Request payload:', data);
+
+    // Make the API request
     fetch(url, {
       method: 'POST',
       headers: {
@@ -39,10 +56,15 @@ function Login({ onLogin }) {
         console.log('Response data:', data); // Log the response data
         if (data.message) {
           setMessage(data.message);
+
+          // Handle successful login
           if (isLogin && data.message === 'Login successful') {
-            onLogin();
+            onLogin(data.name || ''); // Pass the user's name to the parent component
             navigate('/home');
-          } else if (!isLogin && data.message === 'User signed up successfully') {
+          }
+
+          // Handle successful signup
+          if (!isLogin && (data.message === 'User signed up successfully' || data.message === 'Tutor signed up successfully')) {
             setMessage('Registration successful. Please sign in.');
             setIsLogin(true);
           }
@@ -60,6 +82,41 @@ function Login({ onLogin }) {
         <h1>Learning Bridge</h1>
         {message && <p className="message">{message}</p>}
         <form onSubmit={handleSubmit}>
+          {!isLogin && (
+            <>
+              <div className="form-group">
+                <label>
+                  <input
+                    type="radio"
+                    name="userType"
+                    value="student"
+                    checked={userType === 'student'}
+                    onChange={() => setUserType('student')}
+                  />
+                  Student
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="userType"
+                    value="tutor"
+                    checked={userType === 'tutor'}
+                    onChange={() => setUserType('tutor')}
+                  />
+                  Tutor
+                </label>
+              </div>
+              <div className="form-group">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
           <div className="form-group">
             <label>Email</label>
             <input
