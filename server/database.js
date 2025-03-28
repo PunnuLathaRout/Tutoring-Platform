@@ -3,19 +3,26 @@ const db = new sqlite3.Database('./database.db'); // Use a file-based database
 
 db.serialize(() => {
   // Create the 'users' table if it doesn't exist
-  db.run("CREATE TABLE IF NOT EXISTS users (email TEXT PRIMARY KEY, password TEXT)");
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      email TEXT PRIMARY KEY,
+      password TEXT,
+      name TEXT
+    )
+  `);
 
   // Create the 'tutors' table if it doesn't exist
   db.run(`
     CREATE TABLE IF NOT EXISTS tutors (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
-      email TEXT,
+      email TEXT UNIQUE,
       password TEXT,
       qualifications TEXT DEFAULT '',
       hourlyRate TEXT DEFAULT ''
-    );
+    )
   `);
+
 
   // Insert initial data into 'tutors' table if it's empty
   const insertData = `

@@ -11,23 +11,28 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../client/build')));
 
 // Register User (Student)
-app.post('/api/login', (req, res) => {
-  const { email, password, userType } = req.body; // Include userType in the request
-  console.log('Login request:', req.body);
+app.post('/api/register', (req, res) => {
+  const { fullName, email, password } = req.body;
+  console.log('Register student request:', req.body); // Log the request body
 
-  const table = userType === 'tutor' ? 'tutors' : 'users'; // Determine the table to query
-
-  db.get(`SELECT name, email FROM ${table} WHERE email = ? AND password = ?`, [email, password], (err, row) => {
+  // Check if the student already exists
+  db.get("SELECT email FROM users WHERE email = ?", [email], (err, row) => {
     if (err) {
-      console.error('Error during login:', err);
+      console.error('Error during registration:', err); // Log the error
       return res.status(500).json({ message: 'Database error' });
     }
-    if (!row) {
-      console.log('Invalid email or password');
-      return res.status(400).json({ message: 'Invalid email or password' });
+    if (row) {
+      return res.status(400).json({ message: 'Student already exists' });
     }
-    console.log('Login successful:', row);
-    res.status(200).json({ message: 'Login successful', name: row.name }); // Include the name in the response
+
+    // Insert the new student into the database
+    db.run("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [fullName, email, password], (err) => {
+      if (err) {
+        console.error('Error during registration:', err); // Log the error
+        return res.status(500).json({ message: 'Database error' });
+      }
+      res.status(201).json({ message: 'User signed up successfully' });
+    });
   });
 });
 
@@ -54,24 +59,94 @@ app.post('/api/register-tutor', (req, res) => {
   });
 });
 
-// Login User
+// Login User/Tutor
+/// Login User/Tutor
 app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
-  console.log('Login request:', req.body); // Log the request body
-  
-  db.get("SELECT email FROM users WHERE email = ? AND password = ?", [email, password], (err, row) => {
+  const { email, password, userType } = req.body;
+  console.log('Login request received:', req.body);
+
+  // Validate email and password
+  if (!email || !password) {
+    console.error('Missing email or password');
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  // Determine the table to query based on userType
+  let query;
+  let params;
+
+  if (userType === 'tutor') {
+    query = `SELECT name, email FROM tutors WHERE email = ? AND password = ?`;
+    params = [email, password];
+    console.log(`Querying tutors table for email: ${email}`);
+  } else if (userType === 'student') {
+    query = `SELECT name, email FROM users WHERE email = ? AND password = ?`;
+    params = [email, password];
+    console.log(`Querying users table for email: ${email}`);
+  } else {
+    // If userType is missing or invalid, check both tables
+    console.log('UserType is missing or invalid. Checking both tables.');
+    const tutorQuery = `SELECT name, email FROM tutors WHERE email = ? AND password = ?`;
+    const userQuery = `SELECT name, email FROM users WHERE email = ? AND password = ?`;
+
+    // Check tutors table first
+    db.get(tutorQuery, [email, password], (err, tutorRow) => {
+      if (err) {
+        console.error('Error during login (tutors):', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      if (tutorRow) {
+        console.log('Login successful (tutor):', tutorRow);
+        return res.status(200).json({
+          message: 'Login successful',
+          name: tutorRow.name || null,
+          userType: 'tutor',
+        });
+      }
+
+      // If not found in tutors, check users table
+      db.get(userQuery, [email, password], (err, userRow) => {
+        if (err) {
+          console.error('Error during login (users):', err);
+          return res.status(500).json({ message: 'Database error' });
+        }
+        if (userRow) {
+          console.log('Login successful (student):', userRow);
+          return res.status(200).json({
+            message: 'Login successful',
+            name: userRow.name || null,
+            userType: 'student',
+          });
+        }
+
+        // If not found in either table
+        console.log('Invalid email or password');
+        return res.status(400).json({ message: 'Invalid email or password' });
+      });
+    });
+
+    return; // Exit early since we're handling both queries above
+  }
+
+  // Query the appropriate table based on userType
+  db.get(query, params, (err, row) => {
     if (err) {
-      console.error('Error during login:', err); // Log the error
+      console.error('Error during login:', err);
       return res.status(500).json({ message: 'Database error' });
     }
     if (!row) {
-      console.log('Invalid email or password'); // Log invalid login attempt
+      console.log(`Invalid email or password for userType: ${userType}`);
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-    console.log('Login successful:', row); // Log successful login
-    res.status(200).json({ message: 'Login successful' });
+    console.log('Login successful:', row);
+    res.status(200).json({
+      message: 'Login successful',
+      name: row.name || null, // Include the name if available
+      userType: userType, // Include userType in the response
+    });
   });
 });
+
 
 // Fetch tutors from the database
 app.get('/api/tutors', (req, res) => {
