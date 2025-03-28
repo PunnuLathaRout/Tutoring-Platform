@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import './Home.css';
+import './Login.js'; // Import the CSS file for styling
 
 function Home() {
   const [items, setItems] = useState([]);
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     fetch('/api/tutors')
@@ -10,10 +13,24 @@ function Home() {
       .then(data => setItems(data));
   }, []);
 
+  const handleLogout = () => {
+    // Clear all user-related data from localStorage
+    localStorage.removeItem('authToken'); // Remove auth token
+    localStorage.removeItem('userType'); // Remove user type
+    localStorage.removeItem('userName'); // Remove user name if stored
+  
+    // Optionally, clear other session-related data if needed
+    console.log('User logged out successfully.');
+  
+    // Redirect to the login page (handled by Login.js)
+    navigate('/'); // Use navigate to redirect to the login page
+  };
+
+
+
   return (
     <div className="app-container">
-       <header className="header">
-        
+      <header className="header">
         <div className="search-bar">
           <input type="text" placeholder="Search tutors..." />
         </div>
@@ -26,6 +43,10 @@ function Home() {
           <a href="/my-classes">My Classes</a>
           <a href="/teachers">Teachers</a>
           <a href="/book-a-teacher">Book A Teacher</a>
+          <a href="/profile">Profile</a>
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
         </nav>
         <div className="content">
           <div className="grid-container">
