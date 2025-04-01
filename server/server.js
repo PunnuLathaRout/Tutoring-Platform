@@ -60,7 +60,6 @@ app.post('/api/register-tutor', (req, res) => {
 });
 
 // Login User/Tutor
-/// Login User/Tutor
 app.post('/api/login', (req, res) => {
   const { email, password, userType } = req.body;
   console.log('Login request received:', req.body);
@@ -84,64 +83,26 @@ app.post('/api/login', (req, res) => {
     params = [email, password];
     console.log(`Querying users table for email: ${email}`);
   } else {
-    // If userType is missing or invalid, check both tables
-    console.log('UserType is missing or invalid. Checking both tables.');
-    const tutorQuery = `SELECT name, email FROM tutors WHERE email = ? AND password = ?`;
-    const userQuery = `SELECT name, email FROM users WHERE email = ? AND password = ?`;
-
-    // Check tutors table first
-    db.get(tutorQuery, [email, password], (err, tutorRow) => {
-      if (err) {
-        console.error('Error during login (tutors):', err);
-        return res.status(500).json({ message: 'Database error' });
-      }
-      if (tutorRow) {
-        console.log('Login successful (tutor):', tutorRow);
-        return res.status(200).json({
-          message: 'Login successful',
-          name: tutorRow.name || null,
-          userType: 'tutor',
-        });
-      }
-
-      // If not found in tutors, check users table
-      db.get(userQuery, [email, password], (err, userRow) => {
-        if (err) {
-          console.error('Error during login (users):', err);
-          return res.status(500).json({ message: 'Database error' });
-        }
-        if (userRow) {
-          console.log('Login successful (student):', userRow);
-          return res.status(200).json({
-            message: 'Login successful',
-            name: userRow.name || null,
-            userType: 'student',
-          });
-        }
-
-        // If not found in either table
-        console.log('Invalid email or password');
-        return res.status(400).json({ message: 'Invalid email or password' });
-      });
-    });
-
-    return; // Exit early since we're handling both queries above
+    console.log('Invalid userType');
+    return res.status(400).json({ message: 'Invalid user type' });
   }
 
-  // Query the appropriate table based on userType
+  // Query the appropriate table
   db.get(query, params, (err, row) => {
     if (err) {
       console.error('Error during login:', err);
       return res.status(500).json({ message: 'Database error' });
     }
     if (!row) {
-      console.log(`Invalid email or password for userType: ${userType}`);
+      console.log('Invalid email or password');
       return res.status(400).json({ message: 'Invalid email or password' });
     }
+
     console.log('Login successful:', row);
     res.status(200).json({
       message: 'Login successful',
-      name: row.name || null, // Include the name if available
+      name: row.name || null,
+      email: row.email, // Include the email in the response
       userType: userType, // Include userType in the response
     });
   });
@@ -171,6 +132,46 @@ app.post('/api/tutors', (req, res) => {
       return res.status(500).json({ message: 'Database error' });
     }
     res.status(201).json({ message: 'Tutor added successfully' });
+  });
+});
+
+// Profile
+app.get('/api/profile', (req, res) => {
+  const userEmail = req.headers['user-email']; // Get the email from the request headers
+  if (!userEmail) {
+    return res.status(400).json({ message: 'User email is required' });
+  }
+
+  // Determine if the user is a student or tutor
+  const tutorQuery = `SELECT name, email, 'tutor' AS userType, qualifications, hourlyRate FROM tutors WHERE email = ?`;
+  const studentQuery = `SELECT name, email, 'student' AS userType FROM users WHERE email = ?`;
+
+  // Check the tutors table first
+  db.get(tutorQuery, [userEmail], (err, tutorRow) => {
+    if (err) {
+      console.error('Error fetching tutor profile:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    if (tutorRow) {
+      console.log('Tutor profile fetched:', tutorRow);
+      return res.status(200).json(tutorRow);
+    }
+
+    // If not found in tutors, check the users table
+    db.get(studentQuery, [userEmail], (err, studentRow) => {
+      if (err) {
+        console.error('Error fetching student profile:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      if (studentRow) {
+        console.log('Student profile fetched:', studentRow);
+        return res.status(200).json(studentRow);
+      }
+
+      // If not found in either table
+      console.log('Profile not found for email:', userEmail);
+      return res.status(404).json({ message: 'Profile not found' });
+    });
   });
 });
 
