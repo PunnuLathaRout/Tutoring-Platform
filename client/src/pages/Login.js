@@ -64,8 +64,24 @@ function Login({ onLogin }) {
           setMessage(data.message);
 
           // Handle successful login
+          // if (isLogin && data.message === 'Login successful') {
+          //   onLogin(data.name || ''); // Pass the user's name to the parent component
+          //   navigate('/home');
+          // }
+
+          // if (isLogin && data.message === 'Login successful') {
+          //   console.log('Auth token:', data.token); // Log the token
+          //   if (data.token) {
+          //     localStorage.setItem('authToken', data.token); // Save auth token
+          //   } else {
+          //     console.error('No authToken received from the server');
+          //   }
+          //   navigate('/home');
+          // }
+
           if (isLogin && data.message === 'Login successful') {
-            onLogin(data.name || ''); // Pass the user's name to the parent component
+            console.log('Login successful:', data);
+            localStorage.setItem('userEmail', data.email); // Store the email in localStorage
             navigate('/home');
           }
 
