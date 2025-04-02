@@ -19,11 +19,30 @@ db.serialize(() => {
       email TEXT UNIQUE,
       password TEXT,
       qualifications TEXT DEFAULT '',
-      hourlyRate TEXT DEFAULT ''
+      hourlyRate TEXT DEFAULT '',
+      availability TEXT DEFAULT '' -- Add availability column with a default value
     )
   `);
 
+    // Check if the 'availability' column exists, and add it if it doesn't
+  db.all("PRAGMA table_info(tutors)", (err, rows) => {
+    if (err) {
+      console.error('Error checking tutors table schema:', err);
+    } else {
+      const columnExists = rows.some((row) => row.name === 'availability');
+      if (!columnExists) {
+        db.run(`ALTER TABLE tutors ADD COLUMN availability TEXT DEFAULT ''`, (err) => {
+          if (err) {
+            console.error('Error adding availability column:', err.message);
+          } else {
+            console.log('Availability column added successfully.');
+          }
+        });
+      }
+    }
+  });
 
+  
   // Insert initial data into 'tutors' table if it's empty
   const insertData = `
     INSERT INTO tutors (name, email, password, qualifications, hourlyRate) VALUES

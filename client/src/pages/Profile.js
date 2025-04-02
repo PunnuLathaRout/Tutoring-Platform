@@ -10,6 +10,7 @@ function Profile() {
     newPassword: '', // New password (for updating)
     qualifications: '', // For tutors
     hourlyRate: '', // For tutors
+    availability: '', // For tutors
     userType: '', // To determine if the user is a tutor or student
   });
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,7 @@ function Profile() {
 
   const handleSave = () => {
     const userEmail = localStorage.getItem('userEmail'); // Retrieve the email from localStorage
-  
+
     // Prepare the payload with only the updated fields
     const payload = {
       email: userEmail,
@@ -60,9 +61,10 @@ function Profile() {
     if (profileData.newPassword) payload.newPassword = profileData.newPassword;
     if (profileData.qualifications) payload.qualifications = profileData.qualifications;
     if (profileData.hourlyRate) payload.hourlyRate = profileData.hourlyRate;
-  
+    if (profileData.availability) payload.availability = profileData.availability;
+
     console.log('Request payload:', payload);
-  
+
     fetch('/api/profile/password', {
       method: 'PUT',
       headers: {
@@ -158,6 +160,16 @@ function Profile() {
                 placeholder="Enter your hourly rate"
               />
             </label>
+            <label>
+              <strong>Availability:</strong>
+              <input
+                type="text"
+                name="availability"
+                value={profileData.availability}
+                onChange={handleInputChange}
+                placeholder="Enter your availability (e.g., Mon-Fri, 9 AM - 5 PM)"
+              />
+            </label>
           </>
         )}
         <label>
@@ -191,4 +203,4 @@ function Profile() {
   );
 }
 
-export default Profile
+export default Profile;
