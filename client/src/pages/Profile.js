@@ -3,7 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
 function Profile() {
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    password: '', // Current password (for updating)
+    newPassword: '', // New password (for updating)
+    qualifications: '', // For tutors
+    hourlyRate: '', // For tutors
+    userType: '', // To determine if the user is a tutor or student
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -24,16 +32,69 @@ function Profile() {
         return response.json();
       })
       .then((data) => {
-        console.log('Profile data:', data);
-        setProfileData(data); // Correctly update the profileData state
-        setLoading(false); // Set loading to false after data is fetched
+        setProfileData(data); // Populate the form with fetched data
+        setLoading(false);
       })
       .catch((error) => {
-        console.error('Error fetching profile:', error);
         setError(error.message || 'An error occurred while fetching profile.');
-        setLoading(false); // Set loading to false even if there's an error
+        setLoading(false);
       });
   }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const handleSave = () => {
+    const userEmail = localStorage.getItem('userEmail'); // Retrieve the email from localStorage
+  
+    // Prepare the payload with only the updated fields
+    const payload = {
+      email: userEmail,
+      currentPassword: profileData.password,
+    };
+    if (profileData.newPassword) payload.newPassword = profileData.newPassword;
+    if (profileData.qualifications) payload.qualifications = profileData.qualifications;
+    if (profileData.hourlyRate) payload.hourlyRate = profileData.hourlyRate;
+  
+    console.log('Request payload:', payload);
+  
+    fetch('/api/profile/password', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((data) => {
+            throw new Error(data.message || 'Failed to save profile');
+          });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        alert('Profile updated successfully!');
+        setProfileData((prevData) => ({
+          ...prevData,
+          ...data.data, // Update the state with the updated data from the backend
+        }));
+      })
+      .catch((error) => {
+        console.error('Error saving profile:', error.message);
+        alert(error.message);
+      });
+  };
+
+  const handleLogout = () => {
+    localStorage.clear(); // Clear all localStorage data
+    navigate('/'); // Redirect to login page
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -45,20 +106,89 @@ function Profile() {
 
   return (
     <div className="profile-container">
-      <h1>Profile</h1>
+      <div className="profile-header">
+        <div className="profile-avatar">
+          <img
+            src="https://img.freepik.com/premium-vector/silver-membership-icon-default-avatar-profile-icon-membership-icon-social-media-user-image-vector-illustration_561158-4215.jpg?w=740"
+            alt="Default Avatar"
+          />
+        </div>
+        <h1>{profileData.name}</h1>
+      </div>
       <div className="profile-details">
-        <p><strong>Name:</strong> {profileData.name}</p>
-        <p><strong>Email:</strong> {profileData.email}</p>
-        <p><strong>User Type:</strong> {profileData.userType}</p>
+        <label>
+          <strong>Name:</strong>
+          <input
+            type="text"
+            name="name"
+            value={profileData.name}
+            onChange={handleInputChange}
+            placeholder="Enter your name"
+          />
+        </label>
+        <label>
+          <strong>Email:</strong>
+          <input
+            type="email"
+            name="email"
+            value={profileData.email}
+            onChange={handleInputChange}
+            placeholder="Enter your email"
+          />
+        </label>
         {profileData.userType === 'tutor' && (
           <>
-            <p><strong>Qualifications:</strong> {profileData.qualifications}</p>
-            <p><strong>Hourly Rate:</strong> {profileData.hourlyRate}</p>
+            <label>
+              <strong>Qualifications:</strong>
+              <input
+                type="text"
+                name="qualifications"
+                value={profileData.qualifications}
+                onChange={handleInputChange}
+                placeholder="Enter your qualifications"
+              />
+            </label>
+            <label>
+              <strong>Hourly Rate:</strong>
+              <input
+                type="number"
+                name="hourlyRate"
+                value={profileData.hourlyRate}
+                onChange={handleInputChange}
+                placeholder="Enter your hourly rate"
+              />
+            </label>
           </>
         )}
+        <label>
+          <strong>Current Password:</strong>
+          <input
+            type="password"
+            name="password"
+            value={profileData.password}
+            onChange={handleInputChange}
+            placeholder="Enter your current password"
+          />
+        </label>
+        <label>
+          <strong>New Password:</strong>
+          <input
+            type="password"
+            name="newPassword"
+            value={profileData.newPassword}
+            onChange={handleInputChange}
+            placeholder="Enter your new password"
+          />
+        </label>
       </div>
+      <button className="save-button" onClick={handleSave}>
+        Save
+      </button>
+      <button className="logout-button" onClick={handleLogout}>
+        Log out
+      </button>
     </div>
   );
 }
 
-export default Profile;
+export default Profile
