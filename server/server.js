@@ -175,6 +175,181 @@ app.get('/api/profile', (req, res) => {
   });
 });
 
+
+// app.put('/api/profile/password', (req, res) => {
+//   const { email, currentPassword, newPassword } = req.body;
+
+//   if (!email || !currentPassword || !newPassword) {
+//     return res.status(400).json({ message: 'Email, current password, and new password are required' });
+//   }
+
+//   console.log('Request payload:', { email, currentPassword, newPassword });
+
+//   // Check if the current password is correct
+//   const query = `SELECT password FROM users WHERE email = ? UNION SELECT password FROM tutors WHERE email = ?`;
+//   db.get(query, [email, email], (err, row) => {
+//     if (err) {
+//       console.error('Error verifying current password:', err);
+//       return res.status(500).json({ message: 'Database error' });
+//     }
+//     if (!row || row.password !== currentPassword) {
+//       return res.status(400).json({ message: 'Current password is incorrect' });
+//     }
+
+//     // Update the password in the users table
+//     const updateUsersQuery = `UPDATE users SET password = ? WHERE email = ? AND password = ?`;
+//     db.run(updateUsersQuery, [newPassword, email, currentPassword], function (err) {
+//       if (err) {
+//         console.error('Error updating password in users table:', err);
+//         return res.status(500).json({ message: 'Database error' });
+//       }
+
+//       // If no rows were updated in the users table, try updating the tutors table
+//       if (this.changes === 0) {
+//         const updateTutorsQuery = `UPDATE tutors SET password = ? WHERE email = ? AND password = ?`;
+//         db.run(updateTutorsQuery, [newPassword, email, currentPassword], function (err) {
+//           if (err) {
+//             console.error('Error updating password in tutors table:', err);
+//             return res.status(500).json({ message: 'Database error' });
+//           }
+//           if (this.changes === 0) {
+//             return res.status(400).json({ message: 'Invalid email or current password' });
+//           }
+//           res.status(200).json({ message: 'Password updated successfully' });
+//         });
+//       } else {
+//         res.status(200).json({ message: 'Password updated successfully' });
+//       }
+//     });
+//   });
+// });
+
+// app.put('/api/profile/password', (req, res) => {
+//   const { email, currentPassword, newPassword, qualifications, hourlyRate } = req.body;
+
+//   if (!email || !currentPassword || !newPassword) {
+//     return res.status(400).json({ message: 'Email, current password, and new password are required' });
+//   }
+
+//   console.log('Request payload:', { email, currentPassword, newPassword, qualifications, hourlyRate });
+
+//   // Check if the current password is correct
+//   const query = `SELECT password FROM users WHERE email = ? UNION SELECT password FROM tutors WHERE email = ?`;
+//   db.get(query, [email, email], (err, row) => {
+//     if (err) {
+//       console.error('Error verifying current password:', err);
+//       return res.status(500).json({ message: 'Database error' });
+//     }
+//     if (!row || row.password !== currentPassword) {
+//       return res.status(400).json({ message: 'Current password is incorrect' });
+//     }
+
+//     // Update the password in the users table
+//     const updateUsersQuery = `UPDATE users SET password = ? WHERE email = ? AND password = ?`;
+//     db.run(updateUsersQuery, [newPassword, email, currentPassword], function (err) {
+//       if (err) {
+//         console.error('Error updating password in users table:', err);
+//         return res.status(500).json({ message: 'Database error' });
+//       }
+
+//       // If no rows were updated in the users table, try updating the tutors table
+//       if (this.changes === 0) {
+//         const updateTutorsQuery = `
+//           UPDATE tutors
+//           SET password = ?, 
+//               qualifications = COALESCE(?, qualifications), 
+//               hourlyRate = COALESCE(?, hourlyRate)
+//           WHERE email = ? AND password = ?
+//         `;
+//         db.run(updateTutorsQuery, [newPassword, qualifications, hourlyRate, email, currentPassword], function (err) {
+//           if (err) {
+//             console.error('Error updating password, qualifications, or hourly rate in tutors table:', err);
+//             return res.status(500).json({ message: 'Database error' });
+//           }
+//           if (this.changes === 0) {
+//             return res.status(400).json({ message: 'Invalid email or current password' });
+//           }
+//           res.status(200).json({ message: 'Password, qualifications, and hourly rate updated successfully' });
+//         });
+//       } else {
+//         // If the user is not a tutor, just return success for password update
+//         res.status(200).json({ message: 'Password updated successfully' });
+//       }
+//     });
+//   });
+// });
+
+
+app.put('/api/profile/password', (req, res) => {
+  const { email, currentPassword, newPassword, qualifications, hourlyRate } = req.body;
+
+  if (!email || !currentPassword) {
+    return res.status(400).json({ message: 'Email and current password are required' });
+  }
+
+  console.log('Request payload:', { email, currentPassword, newPassword, qualifications, hourlyRate });
+
+  // Check if the current password is correct
+  const query = `SELECT password FROM users WHERE email = ? UNION SELECT password FROM tutors WHERE email = ?`;
+  db.get(query, [email, email], (err, row) => {
+    if (err) {
+      console.error('Error verifying current password:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    if (!row || row.password !== currentPassword) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Update the password in the users table
+    const updateUsersQuery = `UPDATE users SET password = COALESCE(?, password) WHERE email = ?`;
+    db.run(updateUsersQuery, [newPassword, email], function (err) {
+      if (err) {
+        console.error('Error updating password in users table:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+
+      // If no rows were updated in the users table, try updating the tutors table
+      if (this.changes === 0) {
+        const updateTutorsQuery = `
+          UPDATE tutors
+          SET password = COALESCE(?, password), 
+              qualifications = COALESCE(?, qualifications), 
+              hourlyRate = COALESCE(?, hourlyRate)
+          WHERE email = ?
+        `;
+        db.run(updateTutorsQuery, [newPassword, qualifications, hourlyRate, email], function (err) {
+          if (err) {
+            console.error('Error updating tutor details:', err);
+            return res.status(500).json({ message: 'Database error' });
+          }
+          if (this.changes === 0) {
+            return res.status(400).json({ message: 'No changes were made or invalid email' });
+          }
+
+          // Fetch the updated tutor data
+          db.get(`SELECT * FROM tutors WHERE email = ?`, [email], (err, updatedTutor) => {
+            if (err) {
+              console.error('Error fetching updated tutor data:', err);
+              return res.status(500).json({ message: 'Database error' });
+            }
+            res.status(200).json({ message: 'Profile updated successfully', data: updatedTutor });
+          });
+        });
+      } else {
+        // Fetch the updated user data
+        db.get(`SELECT * FROM users WHERE email = ?`, [email], (err, updatedUser) => {
+          if (err) {
+            console.error('Error fetching updated user data:', err);
+            return res.status(500).json({ message: 'Database error' });
+          }
+          res.status(200).json({ message: 'Profile updated successfully', data: updatedUser });
+        });
+      }
+    });
+  });
+});
+
+
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/build/index.html'));
