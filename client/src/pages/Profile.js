@@ -11,6 +11,8 @@ function Profile() {
     qualifications: '', // For tutors
     hourlyRate: '', // For tutors
     availability: '', // For tutors
+    subject: '', // Add subject field
+    rating: 0, // Add rating field (read-only)
     userType: '', // To determine if the user is a tutor or student
   });
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,7 @@ function Profile() {
     if (profileData.qualifications) payload.qualifications = profileData.qualifications;
     if (profileData.hourlyRate) payload.hourlyRate = profileData.hourlyRate;
     if (profileData.availability) payload.availability = profileData.availability;
+    if (profileData.subject) payload.subject = profileData.subject; // Include subject
 
     console.log('Request payload:', payload);
 
@@ -168,6 +171,25 @@ function Profile() {
                 value={profileData.availability}
                 onChange={handleInputChange}
                 placeholder="Enter your availability (e.g., Mon-Fri, 9 AM - 5 PM)"
+              />
+            </label>
+            <label>
+              <strong>Subject:</strong>
+              <input
+                type="text"
+                name="subject"
+                value={profileData.subject}
+                onChange={handleInputChange}
+                placeholder="Enter the subject you teach"
+              />
+            </label>
+            <label>
+              <strong>Rating:</strong>
+              <input
+                type="number"
+                name="rating"
+                value={profileData.rating}
+                readOnly
               />
             </label>
           </>

@@ -42,7 +42,7 @@ function Home() {
           <a href="/dashboard">Dashboard</a>
           <a href="/my-classes">My Classes</a>
           <a href="/teachers">Teachers</a>
-          <a href="/book-a-teacher">Book A Teacher</a>
+          <a href="/bookteacher">Book A Teacher</a>
           <a href="/profile">Profile</a>
           <button className="logout-button" onClick={handleLogout}>
             Logout
@@ -52,11 +52,21 @@ function Home() {
           <div className="grid-container">
             {items.map((item, index) => (
               <div className="grid-item" key={index}>
-                <h2>{item.name}</h2>
+                <h2 
+                  className="clickable-name" 
+                  onClick={() => navigate(`/tutor/${item.email}`)} // Navigate to tutor profile
+                >
+                  {item.name}
+                </h2>
                 <p>Qualifications: {item.qualifications}</p>
                 <p>Hourly Rate: {item.hourlyRate}</p>
                 <p>Email: {item.email}</p>
-                <button className="button">Book Now</button>
+                <button 
+                  className="button" 
+                  onClick={() => navigate(`/bookteacher?teacherName=${encodeURIComponent(item.name)}`)} // Pass teacher name as query param
+                >
+                  Book Now
+                </button>
               </div>
             ))}
           </div>
