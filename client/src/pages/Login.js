@@ -98,6 +98,7 @@ function Login({ onLogin }) {
       });
   };
 
+
   return (
     <div className="login-container">
       <div className="login-content">
@@ -107,26 +108,18 @@ function Login({ onLogin }) {
           {!isLogin && (
             <>
               <div className="form-group">
-                <label>
-                  <input
-                    type="radio"
-                    name="userType"
-                    value="student"
-                    checked={userType === 'student'}
-                    onChange={() => setUserType('student')} // Ensure userType is updated correctly
-                  />
-                  Student
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="userType"
-                    value="tutor"
-                    checked={userType === 'tutor'}
-                    onChange={() => setUserType('tutor')} // Ensure userType is updated correctly
-                  />
-                  Tutor
-                </label>
+                <label>User Type</label>
+                <select
+                  value={userType}
+                  onChange={(e) => setUserType(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    Select User Type
+                  </option>
+                  <option value="student">Student</option>
+                  <option value="tutor">Tutor</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Full Name</label>
@@ -141,26 +134,18 @@ function Login({ onLogin }) {
           )}
           {isLogin && (
             <div className="form-group">
-              <label>
-                <input
-                  type="radio"
-                  name="userType"
-                  value="student"
-                  checked={userType === 'student'}
-                  onChange={() => setUserType('student')}
-                />
-                Student
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="userType"
-                  value="tutor"
-                  checked={userType === 'tutor'}
-                  onChange={() => setUserType('tutor')}
-                />
-                Tutor
-              </label>
+              <label>User Type</label>
+              <select
+                value={userType}
+                onChange={(e) => setUserType(e.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select User Type
+                </option>
+                <option value="student">Student</option>
+                <option value="tutor">Tutor</option>
+              </select>
             </div>
           )}
           <div className="form-group">
