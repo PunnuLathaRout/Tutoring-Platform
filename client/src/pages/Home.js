@@ -5,13 +5,42 @@ import './Login.js'; // Import the CSS file for styling
 
 function Home() {
   const [items, setItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(''); // State for search query
+  const [notifications, setNotifications] = useState([]); // State for notifications
   const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
-    fetch('/api/tutors')
-      .then(response => response.json())
-      .then(data => setItems(data));
+    fetch('/api/tutors') // Fetch all tutors initially
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch tutors');
+        return response.json();
+      })
+      .then(data => setItems(data))
+      .catch(error => console.error('Error fetching tutors:', error));
   }, []);
+
+  useEffect(() => {
+    fetch('/api/notifications') // Fetch notifications
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        return response.json();
+      })
+      .then(data => setNotifications(data))
+      .catch(error => console.error('Error fetching notifications:', error));
+  }, []);
+
+  const handleSearch = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    fetch(`/api/tutors?search=${encodeURIComponent(query)}`) // Search API
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to search tutors');
+        return response.json();
+      })
+      .then(data => setItems(data))
+      .catch(error => console.error('Error searching tutors:', error));
+  };
 
   const handleLogout = () => {
     // Clear all user-related data from localStorage
@@ -26,15 +55,27 @@ function Home() {
     navigate('/'); // Use navigate to redirect to the login page
   };
 
-
-
   return (
     <div className="app-container">
       <header className="header">
         <div className="search-bar">
-          <input type="text" placeholder="Search tutors..." />
+          <input
+            type="text"
+            placeholder="Search tutors..."
+            value={searchQuery}
+            onChange={handleSearch} // Trigger search on input change
+          />
         </div>
-        <div className="notification-icon">🔔</div>
+        <div className="notification-icon">
+          🔔
+          {notifications.length > 0 && (
+            <div className="notification-dropdown">
+              {notifications.map((notification, index) => (
+                <p key={index}>{notification.message}</p>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
       <div className="main-content">
         <nav className="sidebar">
