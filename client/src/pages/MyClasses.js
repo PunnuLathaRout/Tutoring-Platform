@@ -33,6 +33,27 @@ function MyClasses() {
       });
   }, []);
 
+  const handleCancel = (bookingId, tutorEmail) => {
+    const studentEmail = localStorage.getItem('userEmail'); // Get the logged-in student's email
+
+    fetch('/api/bookings/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ bookingId, studentEmail, tutorEmail }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error('Failed to cancel booking');
+        return response.json();
+      })
+      .then((data) => {
+        console.log(data.message); // Debugging log
+        setBookings(bookings.filter((booking) => booking.id !== bookingId)); // Remove canceled booking from the list
+      })
+      .catch((error) => console.error('Error canceling booking:', error));
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -56,6 +77,7 @@ function MyClasses() {
               <p>Date: {booking.date}</p>
               <p>Time: {booking.time}</p>
               <p>Email: {booking.tutorEmail}</p>
+              <button onClick={() => handleCancel(booking.id, booking.tutorEmail)}>Cancel</button>
             </div>
           ))}
         </div>
