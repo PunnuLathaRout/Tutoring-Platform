@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import BookTeacher from './pages/BookTeacher';
 import MyClasses from './pages/MyClasses';
+import Notifications from './pages/Notifications'; // Import Notifications page
 
 function App() {
   const handleLogin = () => {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/profile" element={<Profile />} /> {/* Add Profile route */}
         <Route path="/bookteacher" element={<BookTeacher />} /> {/* Add BookTeacher route */}
         <Route path="/my-classes" element={<MyClasses />} /> {/* Add MyClasses route */}
+        <Route path="/notifications" element={<Notifications />} /> {/* Add Notifications route */}
       </Routes>
     </Router>
   ); 

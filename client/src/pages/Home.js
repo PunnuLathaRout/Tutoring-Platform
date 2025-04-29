@@ -20,13 +20,20 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/notifications') // Fetch notifications
-      .then(response => {
-        if (!response.ok) throw new Error('Failed to fetch notifications');
-        return response.json();
-      })
-      .then(data => setNotifications(data))
-      .catch(error => console.error('Error fetching notifications:', error));
+    const userEmail = localStorage.getItem('userEmail'); // Get the logged-in user's email
+
+    if (userEmail) {
+      fetch(`/api/notifications?email=${encodeURIComponent(userEmail)}`) // Fetch notifications for the user
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch notifications');
+          return response.json();
+        })
+        .then(data => {
+          console.log('Fetched notifications:', data); // Debugging log
+          setNotifications(data);
+        })
+        .catch(error => console.error('Error fetching notifications:', error));
+    }
   }, []);
 
   const handleSearch = (e) => {
@@ -55,6 +62,10 @@ function Home() {
     navigate('/'); // Use navigate to redirect to the login page
   };
 
+  const handleNotificationClick = () => {
+    navigate('/notifications'); // Navigate to the notifications page
+  };
+
   return (
     <div className="app-container">
       <header className="header">
@@ -66,15 +77,9 @@ function Home() {
             onChange={handleSearch} // Trigger search on input change
           />
         </div>
-        <div className="notification-icon">
+        <div className="notification-icon" onClick={handleNotificationClick}>
           🔔
-          {notifications.length > 0 && (
-            <div className="notification-dropdown">
-              {notifications.map((notification, index) => (
-                <p key={index}>{notification.message}</p>
-              ))}
-            </div>
-          )}
+          {notifications.length > 0 && <span className="notification-count">{notifications.length}</span>}
         </div>
       </header>
       <div className="main-content">
