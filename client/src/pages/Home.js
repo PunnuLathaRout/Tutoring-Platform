@@ -7,6 +7,8 @@ function Home() {
   const [items, setItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState(''); // State for search query
   const [notifications, setNotifications] = useState([]); // State for notifications
+  const [recommendedSlots, setRecommendedSlots] = useState([]); // State for recommended slots
+  const [selectedTutor, setSelectedTutor] = useState(null); // State for selected tutor
   const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
@@ -66,6 +68,30 @@ function Home() {
     navigate('/notifications'); // Navigate to the notifications page
   };
 
+  const fetchRecommendedSlots = (studentEmail, tutorEmail) => {
+    fetch(`/api/recommend-slots?studentEmail=${encodeURIComponent(studentEmail)}&tutorEmail=${encodeURIComponent(tutorEmail)}`)
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to fetch recommended slots');
+        return response.json();
+      })
+      .then(data => {
+        console.log('Recommended slots:', data.recommendedSlots); // Debugging log
+        setRecommendedSlots(data.recommendedSlots);
+      })
+      .catch(error => console.error('Error fetching recommended slots:', error));
+  };
+
+  const handleTutorClick = (tutor) => {
+    const studentEmail = localStorage.getItem('userEmail'); // Get the logged-in user's email
+    if (!studentEmail) {
+      console.error('User email not found in localStorage');
+      return;
+    }
+
+    setSelectedTutor(tutor); // Set the selected tutor
+    fetchRecommendedSlots(studentEmail, tutor.email); // Fetch recommended slots for the selected tutor
+  };
+
   return (
     <div className="app-container">
       <header className="header">
@@ -100,7 +126,7 @@ function Home() {
               <div className="grid-item" key={index}>
                 <h2 
                   className="clickable-name" 
-                  onClick={() => navigate(`/tutor/${item.email}`)} // Navigate to tutor profile
+                  onClick={() => handleTutorClick(item)} // Fetch recommendations on tutor click
                 >
                   {item.name}
                 </h2>
@@ -116,6 +142,16 @@ function Home() {
               </div>
             ))}
           </div>
+          {selectedTutor && recommendedSlots.length > 0 && (
+            <div className="recommendation-section">
+              <h3>Recommended Time Slots for {selectedTutor.name}:</h3>
+              <ul>
+                {recommendedSlots.map((slot, index) => (
+                  <li key={index}>{slot}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
       <footer className="footer">

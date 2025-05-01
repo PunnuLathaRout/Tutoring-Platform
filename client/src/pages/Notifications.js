@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './Notifications.css'; // Optional: Add styling for the notifications page
+import './Notifications.css'; // Import the CSS file for styling
 
 function Notifications() {
   const [notifications, setNotifications] = useState([]);
@@ -14,8 +14,7 @@ function Notifications() {
           return response.json();
         })
         .then(data => {
-          console.log('Fetched notifications:', data); // Debugging log
-          setNotifications(data);
+          setNotifications(data); // Update state with fetched notifications
         })
         .catch(error => console.error('Error fetching notifications:', error));
     }
@@ -23,15 +22,19 @@ function Notifications() {
 
   return (
     <div className="notifications-page">
-      <h1>Notifications</h1>
+      <div className="notifications-header">
+        <h1>Notifications</h1>
+      </div>
       {notifications.length > 0 ? (
-        <ul>
+        <ul className="notifications-list">
           {notifications.map((notification, index) => (
-            <li key={index}>{notification.message}</li>
+            <li key={index} className="notification-item">
+              <span className="notification-message">{notification.message}</span>
+            </li>
           ))}
         </ul>
       ) : (
-        <p>No notifications available.</p>
+        <p className="no-notifications">No notifications available.</p>
       )}
     </div>
   );

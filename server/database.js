@@ -20,7 +20,52 @@ db.serialize(() => {
       password TEXT,
       qualifications TEXT DEFAULT '',
       hourlyRate TEXT DEFAULT '',
-      availability TEXT DEFAULT '' -- Add availability column with a default value
+      availability TEXT DEFAULT '',
+      subject TEXT DEFAULT '', -- Add subject column
+      rating REAL DEFAULT 0 -- Add rating column
+    )
+  `);
+
+  // Check if the 'subject' column exists, and add it if it doesn't
+  db.all("PRAGMA table_info(tutors)", (err, rows) => {
+    if (err) {
+      console.error('Error checking tutors table schema:', err);
+    } else {
+      const subjectExists = rows.some((row) => row.name === 'subject');
+      if (!subjectExists) {
+        db.run(`ALTER TABLE tutors ADD COLUMN subject TEXT DEFAULT ''`, (err) => {
+          if (err) {
+            console.error('Error adding subject column:', err.message);
+          } else {
+            console.log('Subject column added successfully.');
+          }
+        });
+      }
+
+      const ratingExists = rows.some((row) => row.name === 'rating');
+      if (!ratingExists) {
+        db.run(`ALTER TABLE tutors ADD COLUMN rating REAL DEFAULT 0`, (err) => {
+          if (err) {
+            console.error('Error adding rating column:', err.message);
+          } else {
+            console.log('Rating column added successfully.');
+          }
+        });
+      }
+    }
+  });
+
+
+module.exports = db;
+
+   // Create the 'bookings' table if it doesn't exist
+   db.run(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      studentEmail TEXT NOT NULL,
+      tutorEmail TEXT NOT NULL,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL
     )
   `);
 
