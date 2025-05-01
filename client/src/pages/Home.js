@@ -133,6 +133,8 @@ function Home() {
                 <p>Qualifications: {item.qualifications}</p>
                 <p>Hourly Rate: {item.hourlyRate}</p>
                 <p>Email: {item.email}</p>
+                <p>availability : {item.availability }</p>
+                <p>Subject: {item.subject}</p>
                 <button 
                   className="button" 
                   onClick={() => navigate(`/bookteacher?teacherName=${encodeURIComponent(item.name)}`)} // Pass teacher name as query param

@@ -51,6 +51,48 @@ function scheduleReminders() {
   });
 }
 
+// Ensure availability and subjects are set for all tutors
+function ensureTutorData() {
+  const randomTimes = ['09:00', '10:00', '11:00'];
+  const randomSubjects = ['Math', 'Science', 'English'];
+
+  db.all("SELECT id, availability, subject FROM tutors", [], (err, tutors) => {
+    if (err) {
+      console.error('Error fetching tutors:', err);
+      return;
+    }
+
+    tutors.forEach(tutor => {
+      const updates = [];
+      const params = [];
+
+      if (!tutor.availability) {
+        updates.push("availability = ?");
+        params.push(randomTimes[Math.floor(Math.random() * randomTimes.length)]);
+      }
+
+      if (!tutor.subject) {
+        updates.push("subject = ?");
+        params.push(randomSubjects[Math.floor(Math.random() * randomSubjects.length)]);
+      }
+
+      if (updates.length > 0) {
+        const updateQuery = `UPDATE tutors SET ${updates.join(", ")} WHERE id = ?`;
+        params.push(tutor.id);
+
+        db.run(updateQuery, params, (err) => {
+          if (err) {
+            console.error(`Error updating tutor ID ${tutor.id}:`, err);
+          }
+        });
+      }
+    });
+  });
+}
+
+// Call the function to ensure tutor data is populated
+ensureTutorData();
+
 // Call the function to schedule reminders
 scheduleReminders();
 
@@ -174,7 +216,15 @@ app.get('/api/random-tutors', (req, res) => {
       console.error('Error fetching random tutors:', err);
       return res.status(500).json({ message: 'Database error' });
     }
-    res.status(200).json(rows);
+
+    // Add random availability and subjects
+    const updatedRows = rows.map(tutor => ({
+      ...tutor,
+      availability: ['09:00', '10:00', '11:00'][Math.floor(Math.random() * 3)], // Random time
+      subject: ['Math', 'Science', 'English'][Math.floor(Math.random() * 3)] // Random subject
+    }));
+
+    res.status(200).json(updatedRows);
   });
 });
 
@@ -223,8 +273,16 @@ app.get('/api/profile', (req, res) => {
     return res.status(400).json({ message: 'User email is required' });
   }
 
-  const tutorQuery = `SELECT name, email, 'tutor' AS userType, qualifications, hourlyRate, availability FROM tutors WHERE email = ?`;
-  const studentQuery = `SELECT name, email, 'student' AS userType FROM users WHERE email = ?`;
+  const tutorQuery = `
+    SELECT name, email, 'tutor' AS userType, qualifications, hourlyRate, availability, subject
+    FROM tutors
+    WHERE email = ?
+  `;
+  const studentQuery = `
+    SELECT name, email, 'student' AS userType
+    FROM users
+    WHERE email = ?
+  `;
 
   db.get(tutorQuery, [userEmail], (err, tutorRow) => {
     if (err) {
@@ -480,6 +538,43 @@ app.get('/api/tutor/:email', (req, res) => {
       return res.status(404).json({ message: 'Tutor not found' });
     }
     res.status(200).json(tutor);
+  });
+});
+
+// Fetch a tutor's profile for students
+app.get('/api/tutor-profile/:email', (req, res) => {
+  const { email } = req.params;
+
+  console.log(`Fetching profile for tutor with email: ${email}`); // Debug log
+
+  const query = `
+    SELECT name, email, qualifications, hourlyRate, availability, subject, rating
+    FROM tutors
+    WHERE email = ?
+  `;
+
+  db.get(query, [email], (err, tutor) => {
+    if (err) {
+      console.error('Error fetching tutor profile:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    if (!tutor) {
+      console.warn(`Tutor not found for email: ${email}`); // Debug log
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+
+    console.log(`Tutor profile fetched successfully for email: ${email}`); // Debug log
+
+    // Respond with the tutor's profile
+    res.status(200).json({
+      name: tutor.name,
+      email: tutor.email,
+      qualifications: tutor.qualifications,
+      hourlyRate: tutor.hourlyRate,
+      availability: tutor.availability,
+      subject: tutor.subject,
+      rating: tutor.rating,
+    });
   });
 });
 
