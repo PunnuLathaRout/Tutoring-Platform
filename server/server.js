@@ -2,13 +2,57 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./database'); // Correctly import the database.js file
 const path = require('path');
+const fs = require('fs');
+const schedule = require('node-schedule'); // Import node-schedule for scheduling reminders
 
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../client/build')));
+// Serve static files only if the build directory exists
+const buildPath = path.join(__dirname, '../client/build');
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
+
+// In-memory storage for notifications (use a database in production)
+const notifications = [];
+
+// Function to schedule reminders
+function scheduleReminders() {
+  db.all("SELECT * FROM bookings", [], (err, bookings) => {
+    if (err) {
+      console.error('Error fetching bookings for reminders:', err);
+      return;
+    }
+
+    bookings.forEach((booking) => {
+      const bookingTime = new Date(`${booking.date}T${booking.time}`);
+      const reminderTime = new Date(bookingTime.getTime() - 15 * 60 * 1000); // 15 minutes before booking
+
+      if (reminderTime > new Date()) {
+        schedule.scheduleJob(reminderTime, () => {
+          notifications.push({
+            recipient: booking.studentEmail,
+            message: `Reminder: Your session with the tutor (${booking.tutorEmail}) is scheduled for ${booking.date} at ${booking.time}.`,
+          });
+          notifications.push({
+            recipient: booking.tutorEmail,
+            message: `Reminder: Your session with the student (${booking.studentEmail}) is scheduled for ${booking.date} at ${booking.time}.`,
+          });
+
+          console.log(`Reminder notifications sent for booking ID: ${booking.id}`);
+        });
+      }
+    });
+  });
+}
+
+// Call the function to schedule reminders
+scheduleReminders();
 
 // Register User (Student)
 app.post('/api/register', (req, res) => {
@@ -98,14 +142,64 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// Fetch tutors from the database
+// Fetch tutors with optional search functionality
 app.get('/api/tutors', (req, res) => {
-  db.all("SELECT * FROM tutors", [], (err, rows) => {
+  const { search } = req.query;
+
+  let query = "SELECT * FROM tutors";
+  const params = [];
+
+  if (search) {
+    query += " WHERE LOWER(name) LIKE ? OR CAST(hourlyRate AS TEXT) LIKE ?";
+    const searchParam = `%${search.toLowerCase()}%`;
+    params.push(searchParam, searchParam);
+  }
+
+  db.all(query, params, (err, rows) => {
     if (err) {
       console.error('Error fetching tutors:', err);
       return res.status(500).json({ message: 'Database error' });
     }
+    console.log('Fetched tutors:', rows); // Log fetched tutors for debugging
     res.status(200).json(rows);
+  });
+});
+
+// Fetch 3 random tutors
+app.get('/api/random-tutors', (req, res) => {
+  const query = "SELECT * FROM tutors ORDER BY RANDOM() LIMIT 3";
+
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error('Error fetching random tutors:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+// Fetch recommended slots for a student and tutor
+app.get('/api/recommend-slots', (req, res) => {
+  const { studentEmail, tutorEmail } = req.query;
+
+  if (!studentEmail || !tutorEmail) {
+    return res.status(400).json({ message: 'Student email and tutor email are required' });
+  }
+
+  const query = `
+    SELECT slot
+    FROM recommended_slots
+    WHERE studentEmail = ? AND tutorEmail = ?
+    ORDER BY slot
+  `;
+
+  db.all(query, [studentEmail, tutorEmail], (err, rows) => {
+    if (err) {
+      console.error('Error fetching recommended slots:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    const recommendedSlots = rows.map(row => row.slot);
+    res.status(200).json({ recommendedSlots });
   });
 });
 
@@ -219,9 +313,200 @@ app.put('/api/profile/password', (req, res) => {
   });
 });
 
-// Serve the React app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+// Add a new booking with notifications
+app.post('/api/bookings', (req, res) => {
+  const { studentEmail, tutorEmail, date, time } = req.body;
+
+  if (!studentEmail || !tutorEmail || !date || !time) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  const insertBookingQuery = `
+    INSERT INTO bookings (studentEmail, tutorEmail, date, time)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.run(insertBookingQuery, [studentEmail, tutorEmail, date, time], (err) => {
+    if (err) {
+      console.error('Error adding booking:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+
+    // Add confirmation notifications
+    const studentNotification = `You have booked the teacher ${tutorEmail} for ${date} at ${time}.`;
+    const tutorNotification = `Student ${studentEmail} has booked you for ${date} at ${time}.`;
+
+    notifications.push({
+      recipient: studentEmail,
+      message: studentNotification,
+    });
+    notifications.push({
+      recipient: tutorEmail,
+      message: tutorNotification,
+    });
+
+    // Print notifications in the terminal
+    console.log('Notification for student:', studentNotification);
+    console.log('Notification for tutor:', tutorNotification);
+
+    res.status(201).json({ message: 'Booking created successfully' });
+  });
+});
+
+// Cancel a booking with notifications
+app.post('/api/bookings/cancel', (req, res) => {
+  const { bookingId, studentEmail, tutorEmail } = req.body;
+
+  if (!bookingId || !studentEmail || !tutorEmail) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  const deleteBookingQuery = `DELETE FROM bookings WHERE id = ?`;
+
+  db.run(deleteBookingQuery, [bookingId], (err) => {
+    if (err) {
+      console.error('Error canceling booking:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+
+    // Add cancellation notifications
+    notifications.push({
+      recipient: studentEmail,
+      message: `You have canceled your class with the tutor (${tutorEmail}).`,
+    });
+    notifications.push({
+      recipient: tutorEmail,
+      message: `The student (${studentEmail}) has canceled their class with you.`,
+    });
+
+    console.log('Cancellation notifications sent for booking ID:', bookingId);
+    res.status(200).json({ message: 'Booking canceled successfully' });
+  });
+});
+
+// Send reminder notifications
+app.post('/api/bookings/reminders', (req, res) => {
+  const { studentEmail, tutorEmail, date, time } = req.body;
+
+  if (!studentEmail || !tutorEmail || !date || !time) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  // Add reminder notifications
+  notifications.push({
+    recipient: studentEmail,
+    message: `Reminder: Your session with the tutor (${tutorEmail}) is scheduled for ${date} at ${time}.`,
+  });
+  notifications.push({
+    recipient: tutorEmail,
+    message: `Reminder: Your session with the student (${studentEmail}) is scheduled for ${date} at ${time}.`,
+  });
+
+  res.status(200).json({ message: 'Reminders sent successfully' });
+});
+
+// Fetch notifications for a specific user
+app.get('/api/notifications', (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
+  const userNotifications = notifications.filter(
+    (notification) => notification.recipient === email
+  );
+
+  res.status(200).json(userNotifications); // Return notifications as an array
+});
+
+// Fetch bookings for a specific tutor
+app.get('/api/bookings/:tutorEmail', (req, res) => {
+  const { tutorEmail } = req.params;
+
+  const fetchBookingsQuery = `
+    SELECT * FROM bookings WHERE tutorEmail = ?
+  `;
+
+  db.all(fetchBookingsQuery, [tutorEmail], (err, rows) => {
+    if (err) {
+      console.error('Error fetching bookings:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    res.status(200).json(rows);
+  });
+});
+
+// Fetch bookings for a specific student
+app.get('/api/bookings/student/:studentEmail', (req, res) => {
+  const { studentEmail } = req.params;
+
+  console.log('Fetching bookings for studentEmail:', studentEmail); // Log the studentEmail
+
+  const fetchBookingsQuery = `
+    SELECT b.id, b.date, b.time, t.name AS tutorName, t.email AS tutorEmail, t.qualifications, t.hourlyRate
+    FROM bookings b
+    JOIN tutors t ON b.tutorEmail = t.email
+    WHERE b.studentEmail = ?
+  `;
+
+  db.all(fetchBookingsQuery, [studentEmail], (err, rows) => {
+    if (err) {
+      console.error('Error fetching bookings:', err); // Log the error
+      return res.status(500).json({ message: 'Database error' });
+    }
+
+    console.log('Fetched bookings:', rows); // Log the fetched rows
+    res.status(200).json(rows);
+  });
+});
+
+// Fetch a specific tutor's profile by email
+app.get('/api/tutor/:email', (req, res) => {
+  const { email } = req.params;
+
+  const query = `
+    SELECT name, email, qualifications, hourlyRate, availability, subject, rating
+    FROM tutors
+    WHERE email = ?
+  `;
+
+  db.get(query, [email], (err, tutor) => {
+    if (err) {
+      console.error('Error fetching tutor profile:', err);
+      return res.status(500).json({ message: 'Database error' });
+    }
+    if (!tutor) {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+    res.status(200).json(tutor);
+  });
+});
+
+// Update tutor rating
+app.post('/api/rate-tutor', (req, res) => {
+  const { tutorEmail, rating } = req.body;
+
+  if (!tutorEmail || !rating) {
+    return res.status(400).json({ message: 'Tutor email and rating are required' });
+  }
+
+  const updateRatingQuery = `
+    UPDATE tutors
+    SET rating = CASE
+      WHEN rating IS NULL THEN ?
+      ELSE (rating + ?) / 2
+    END
+    WHERE email = ?
+  `;
+
+  db.run(updateRatingQuery, [rating, rating, tutorEmail], function (err) {
+    if (err) {
+      console.error('Error updating rating:', err.message);
+      return res.status(500).json({ message: 'Failed to update rating' });
+    }
+    res.json({ message: 'Rating updated successfully' });
+  });
 });
 
 // Start the server
